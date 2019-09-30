@@ -47,7 +47,7 @@ jobs:
       - orb-tools/validate
   test-remember:
     docker:
-      - image: ubuntu:18.04
+      - image: circleci/python:3.7
     steps:
       - re/member:
           env_var: FOO
@@ -57,7 +57,7 @@ jobs:
           command: '[[ $FOO == "bar" ]]'
   test-recall:
     docker:
-      - image: ubuntu:18.04
+      - image: circleci/python:3.7
     steps:
       - re/call:
           env_var: FOO
@@ -86,7 +86,7 @@ orbs:
           jobs:
             publish_image:
               docker:
-                - image: ubuntu:18.04
+                - image: circleci/python:3.7
               steps:
                 - re/member:
                     env_var: IMAGE_TAG
@@ -95,7 +95,7 @@ orbs:
                 - run: docker push $IMAGE_TAG
             test_image:
               docker:
-                - image: ubuntu:18.04
+                - image: circleci/python:3.7
               steps:
                 - re/call:
                     env_var: IMAGE_TAG
@@ -103,7 +103,7 @@ orbs:
                 - run: docker run $IMAGE_TAG test_coolness
             deploy_image:
               docker:
-                - image: ubuntu:18.04
+                - image: circleci/python:3.7
               steps:
                 - re/call:
                     env_var: IMAGE_TAG
