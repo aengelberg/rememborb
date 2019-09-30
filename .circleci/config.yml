@@ -26,6 +26,7 @@ workflows:
                 - master
       - orb-tools/dev-promote-prod:
           orb-name: aengelberg/rememborb
+          publish-version-tag: false
           requires:
             - approval
           filters:
