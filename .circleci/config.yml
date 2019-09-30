@@ -3,10 +3,10 @@ version: 2.1
 workflows:
   orb:
     jobs:
-      - remember
-      - recall:
+      - test-remember
+      - test-recall:
           requires:
-            - remember
+            - test-remember
       - build-and-validate
       - orb-tools/publish-dev:
           orb-name: aengelberg/rememborb
@@ -14,7 +14,7 @@ workflows:
           publish-sha-version: true
           requires:
             - build-and-validate
-            - recall
+            - test-recall
       - approval:
           type: approval
           requires:
@@ -32,6 +32,38 @@ workflows:
             branches:
               only:
                 - master
+
+jobs:
+  build-and-validate:
+    docker:
+      - image: circleci/ruby:2.4
+    steps:
+      - checkout
+      - orb-tools/extract-inline-orb:
+          file: orb.yml
+          orb: re
+          source: .circleci/config.yml
+      - cli/install
+      - orb-tools/validate
+  test-remember:
+    docker:
+      - image: ubuntu:18.04
+    steps:
+      - re/member:
+          env_var: FOO
+          value: bar
+      - run:
+          name: I can use this right away...
+          command: '[[ $FOO == "bar" ]]'
+  test-recall:
+    docker:
+      - image: ubuntu:18.04
+    steps:
+      - re/call:
+          env_var: FOO
+      - run:
+          name: ...or later!
+          command: '[[ $FOO == "bar" ]]'
 
 orbs:
   orb-tools: circleci/orb-tools@8.27.4
@@ -81,43 +113,6 @@ orbs:
                 - deploy_image:
                     requires:
                       - test_image
-      minimal_example:
-        description: |
-          TODO
-
-        usage:
-          version: 2.1
-          orbs:
-            re: aengelberg/rememborb@x.y.z
-
-          jobs: &sample_jobs
-            remember:
-              docker:
-                - image: ubuntu:18.04
-              steps:
-                - re/member:
-                    env_var: FOO
-                    value: bar
-                - run:
-                    name: I can use this right away...
-                    command: '[[ $FOO == "bar" ]]'
-            recall:
-              docker:
-                - image: ubuntu:18.04
-              steps:
-                - re/call:
-                    env_var: FOO
-                - run:
-                    name: ...or later!
-                    command: '[[ $FOO == "bar" ]]'
-
-          workflows:
-            remember_and_recall:
-              jobs:
-                - remember
-                - recall:
-                    requires:
-                      - remember
     commands:
       member:
         description: |
@@ -154,19 +149,3 @@ orbs:
         steps:
           - run: echo TODO
 
-
-
-
-jobs:
-  build-and-validate:
-    docker:
-      - image: circleci/ruby:2.4
-    steps:
-      - checkout
-      - orb-tools/extract-inline-orb:
-          file: orb.yml
-          orb: re
-          source: .circleci/config.yml
-      - cli/install
-      - orb-tools/validate
-  <<: *sample_jobs
