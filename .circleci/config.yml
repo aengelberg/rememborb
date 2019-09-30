@@ -1,0 +1,154 @@
+version: 2.1
+
+workflows:
+  orb:
+    jobs:
+      - remember
+      - recall:
+          requires:
+            - remember
+      - validate
+      - orb-tools/publish-dev:
+          orb-name: aengelberg/rememborb
+          publish-alpha-version: false
+          publish-sha-version: true
+          requires:
+            - build-and-test
+            - recall
+      - approval:
+          type: approval
+          requires:
+            - build-and-test
+            - orb-tools/publish-dev
+          filters:
+            branches:
+              only:
+                - master
+      - orb-tools/dev-promote-prod:
+          orb-name: aengelberg/rememborb
+          requires:
+            - approval
+          filters:
+            branches:
+              only:
+                - master
+
+jobs:
+  validate:
+    docker:
+      - image: circleci/ruby:2.4
+    steps:
+      - checkout
+      - orb-tools/extract-inline-orb:
+          file: orb.yml
+          orb: rememborb
+          source: .circleci/config.yml
+      - cli/install
+      - orb-tools/validate
+  *sample_jobs
+
+orbs:
+  orb-tools: circleci/orb-tools@8.27.4
+  cli: circleci/circleci-cli@0.1.5
+
+  re:
+    description: |
+      TODO
+
+    examples:
+      standard_usage:
+        description: |
+          TODO
+
+        usage:
+          version: 2.1
+          orbs:
+            re: aengelberg/rememborb@x.y.z
+
+          jobs:
+            publish_image:
+              steps:
+                - re/member:
+                    env_var: IMAGE_TAG
+                    value: super_cool_image:1.0.$CIRCLE_BUILD_NUM-$CIRCLE_SHA
+                - run: docker build -t $IMAGE_TAG .
+                - run: docker push $IMAGE_TAG
+            test_image:
+              steps:
+                - re/call:
+                    env_var: IMAGE_TAG
+                - run: docker pull $IMAGE_TAG
+                - run: docker run $IMAGE_TAG test_coolness
+            deploy_image:
+              steps:
+                - re/call:
+                    env_var: IMAGE_TAG
+                - run: docker pull $IMAGE_TAG
+                - run: some_kubernetes_shenanigans $IMAGE_TAG
+          workflows:
+            highly_fault_tolerant_delivery:
+              jobs:
+                - publish_image
+                - test_image:
+                    requires:
+                      - publish_image
+                - deploy_image:
+                    requires:
+                      - test_image
+      minimal_example:
+        description: |
+          TODO
+
+        usage:
+          version: 2.1
+          orbs:
+            re: aengelberg/rememborb@x.y.z
+
+          jobs: &sample_jobs
+            remember:
+              docker:
+                - image: ubuntu:18.04
+              steps:
+                - re/member:
+                    env_var: FOO
+                    value: bar
+                - run:
+                    name: I can use this right away...
+                    command: [[ $FOO == "bar" ]]
+            recall:
+              docker:
+                - image: ubuntu:18.04
+              steps:
+                - re/call:
+                    env_var: FOO
+                - run:
+                    name: ...or later!
+                    command: [[ $FOO == "bar" ]]
+
+          workflows:
+            remember_and_recall:
+              jobs:
+                - remember
+                - recall:
+                    requires:
+                      - remember
+    commands:
+      member:
+        description: |
+          TODO
+        parameters:
+          env_var:
+            description: |
+              TODO
+            type: string
+          value:
+            description: |
+              TODO
+            type: string
+        steps:
+          - run:
+              name: Remember << parameters.name >>
+              command: |
+                export << parameters.env_var >>=<< parameters.value >>
+                echo Remembering << parameters.env_var >> = << parameters.value >>
+                
