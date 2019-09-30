@@ -137,7 +137,11 @@ orbs:
               name: Remember << parameters.env_var >>
               command: |
                 export << parameters.env_var >>="<< parameters.value >>"
-                echo "export << parameters.env_var >>=${<< parameters.env_var >>}" >> $BASH_ENV
+                exporter="export << parameters.env_var >>=${<< parameters.env_var >>}"
+                echo $exporter >> $BASH_ENV
+                remember_file="/tmp/circleci_remember/.circleci_remember/<< parameters.env_var >>"
+                mkdir -p $(dirname $remember_file)
+                echo $exporter >> $remember_file
                 echo Remembering << parameters.env_var >> = ${<< parameters.env_var >>}
           - persist_to_workspace:
               # TODO: platform agnostic
