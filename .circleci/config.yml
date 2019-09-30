@@ -7,18 +7,18 @@ workflows:
       - recall:
           requires:
             - remember
-      - validate
+      - build-and-validate
       - orb-tools/publish-dev:
           orb-name: aengelberg/rememborb
           publish-alpha-version: false
           publish-sha-version: true
           requires:
-            - build-and-test
+            - build-and-validate
             - recall
       - approval:
           type: approval
           requires:
-            - build-and-test
+            - build-and-validate
             - orb-tools/publish-dev
           filters:
             branches:
@@ -32,20 +32,6 @@ workflows:
             branches:
               only:
                 - master
-
-jobs:
-  validate:
-    docker:
-      - image: circleci/ruby:2.4
-    steps:
-      - checkout
-      - orb-tools/extract-inline-orb:
-          file: orb.yml
-          orb: rememborb
-          source: .circleci/config.yml
-      - cli/install
-      - orb-tools/validate
-  *sample_jobs
 
 orbs:
   orb-tools: circleci/orb-tools@8.27.4
@@ -114,7 +100,7 @@ orbs:
                     value: bar
                 - run:
                     name: I can use this right away...
-                    command: [[ $FOO == "bar" ]]
+                    command: '[[ $FOO == "bar" ]]'
             recall:
               docker:
                 - image: ubuntu:18.04
@@ -123,7 +109,7 @@ orbs:
                     env_var: FOO
                 - run:
                     name: ...or later!
-                    command: [[ $FOO == "bar" ]]
+                    command: '[[ $FOO == "bar" ]]'
 
           workflows:
             remember_and_recall:
@@ -147,8 +133,39 @@ orbs:
             type: string
         steps:
           - run:
-              name: Remember << parameters.name >>
+              name: Remember << parameters.env_var >>
               command: |
                 export << parameters.env_var >>=<< parameters.value >>
                 echo Remembering << parameters.env_var >> = << parameters.value >>
-                
+          - persist_to_workspace:
+              # TODO: platform agnostic
+              root: /tmp/circleci_remember
+              paths:
+                - .circleci_remember/<< parameters.env_var >>
+      call:
+        description: |
+          TODO
+        parameters:
+          env_var:
+            description: |
+              TODO
+            type: string
+        steps:
+          - run: echo TODO
+
+
+
+
+jobs:
+  build-and-validate:
+    docker:
+      - image: circleci/ruby:2.4
+    steps:
+      - checkout
+      - orb-tools/extract-inline-orb:
+          file: orb.yml
+          orb: re
+          source: .circleci/config.yml
+      - cli/install
+      - orb-tools/validate
+  <<: *sample_jobs
