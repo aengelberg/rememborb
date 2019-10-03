@@ -50,7 +50,7 @@ jobs:
     docker:
       - image: circleci/python:3.7
     steps:
-      - re/member:
+      - mem/remember:
           env_var: FOO
           value: bar
       - run:
@@ -60,7 +60,7 @@ jobs:
     docker:
       - image: circleci/python:3.7
     steps:
-      - re/call:
+      - mem/recall:
           env_var: FOO
       - run:
           name: ...or later!
@@ -70,7 +70,7 @@ orbs:
   orb-tools: circleci/orb-tools@8.27.4
   cli: circleci/circleci-cli@0.1.5
 
-  re:
+  mem:
     description: |
       TODO
 
@@ -82,14 +82,14 @@ orbs:
         usage:
           version: 2.1
           orbs:
-            re: aengelberg/rememborb@x.y.z
+            mem: aengelberg/rememborb@x.y.z
 
           jobs:
             publish_image:
               docker:
                 - image: circleci/python:3.7
               steps:
-                - re/member:
+                - mem/remember:
                     env_var: IMAGE_TAG
                     value: super_cool_image:1.0.$CIRCLE_BUILD_NUM-$CIRCLE_SHA
                 - run: docker build -t $IMAGE_TAG .
@@ -98,7 +98,7 @@ orbs:
               docker:
                 - image: circleci/python:3.7
               steps:
-                - re/call:
+                - mem/recall:
                     env_var: IMAGE_TAG
                 - run: docker pull $IMAGE_TAG
                 - run: docker run $IMAGE_TAG test_coolness
@@ -106,7 +106,7 @@ orbs:
               docker:
                 - image: circleci/python:3.7
               steps:
-                - re/call:
+                - mem/recall:
                     env_var: IMAGE_TAG
                 - run: docker pull $IMAGE_TAG
                 - run: some_kubernetes_shenanigans $IMAGE_TAG
@@ -121,7 +121,7 @@ orbs:
                     requires:
                       - test_image
     commands:
-      member:
+      remember:
         description: |
           TODO
         parameters:
@@ -149,7 +149,7 @@ orbs:
               root: /tmp/circleci_remember
               paths:
                 - .circleci_remember/<< parameters.env_var >>
-      call:
+      recall:
         description: |
           TODO
         parameters:
