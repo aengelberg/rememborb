@@ -42,7 +42,7 @@ jobs:
       - checkout
       - orb-tools/extract-inline-orb:
           file: orb.yml
-          orb: re
+          orb: mem
           source: .circleci/config.yml
       - cli/install
       - orb-tools/validate
