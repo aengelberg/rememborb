@@ -72,12 +72,14 @@ orbs:
 
   mem:
     description: |
-      TODO
+      A lightweight utility to persist environment variables across steps in a
+      job, or across jobs in a workflow.
 
     examples:
       standard_usage:
         description: |
-          TODO
+          A docker workflow, in which we need to remember the IMAGE_TAG across
+          steps and jobs as we build, test, and deploy the image.
 
         usage:
           version: 2.1
@@ -123,15 +125,14 @@ orbs:
     commands:
       remember:
         description: |
-          TODO
+          Exports an environment variable that can be read throughout the remainder
+          of this job, and persists the value to be `recall`ed in a downstream job.
         parameters:
           env_var:
-            description: |
-              TODO
+            description: The environment variable to set.
             type: string
           value:
-            description: |
-              TODO
+            description: The value to save to the variable.
             type: string
         steps:
           - run:
@@ -151,11 +152,11 @@ orbs:
                 - .circleci_remember/<< parameters.env_var >>
       recall:
         description: |
-          TODO
+          Recalls an environment variable that was previously `remember`ed, and
+          exports it so it can be read throughout the remainder of this job.
         parameters:
           env_var:
-            description: |
-              TODO
+            description: The environment variable to recall.
             type: string
         steps:
           - attach_workspace:
