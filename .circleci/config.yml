@@ -1,12 +1,40 @@
 version: 2.1
 
+executors:
+  linux:
+    docker:
+      - image: circleci/python:3.7
+  mac:
+    macos:
+      xcode: 11.1
+
 workflows:
   orb:
     jobs:
-      - test-remember
+      - test-remember:
+          name: remember-linux
+          exec: linux
       - test-recall:
+          name: recall-linux
+          exec: linux
           requires:
-            - test-remember
+            - remember-linux
+      - test-remember:
+          name: remember-mac
+          exec: mac
+      - test-recall:
+          name: recall-mac
+          exec: mac
+          requires:
+            - remember-mac
+      - test-remember:
+          name: remember-windows
+          exec: win/default
+      - test-recall:
+          name: recall-windows
+          exec: win/default
+          requires:
+            - remember-windows
       - build-and-validate
       - orb-tools/publish-dev:
           orb-name: aengelberg/rememborb
@@ -14,7 +42,9 @@ workflows:
           publish-sha-version: true
           requires:
             - build-and-validate
-            - test-recall
+            - recall-linux
+            - recall-mac
+            - recall-windows
       - approval:
           type: approval
           requires:
@@ -35,6 +65,29 @@ workflows:
                 - master
 
 jobs:
+  test-remember:
+    parameters:
+      exec:
+        type: executor
+    executor: << parameters.exec >>
+    steps:
+      - mem/remember:
+          env_var: FOO
+          value: bar
+      - run:
+          name: I can use this right away...
+          command: '[[ $FOO == "bar" ]]'
+  test-recall:
+    parameters:
+      exec:
+        type: executor
+    executor: << parameters.exec >>
+    steps:
+      - mem/recall:
+          env_var: FOO
+      - run:
+          name: ...or later!
+          command: '[[ $FOO == "bar" ]]'
   build-and-validate:
     docker:
       - image: circleci/ruby:2.4
@@ -46,29 +99,11 @@ jobs:
           source: .circleci/config.yml
       - cli/install
       - orb-tools/validate
-  test-remember:
-    docker:
-      - image: circleci/python:3.7
-    steps:
-      - mem/remember:
-          env_var: FOO
-          value: bar
-      - run:
-          name: I can use this right away...
-          command: '[[ $FOO == "bar" ]]'
-  test-recall:
-    docker:
-      - image: circleci/python:3.7
-    steps:
-      - mem/recall:
-          env_var: FOO
-      - run:
-          name: ...or later!
-          command: '[[ $FOO == "bar" ]]'
 
 orbs:
   orb-tools: circleci/orb-tools@8.27.4
   cli: circleci/circleci-cli@0.1.5
+  win: circleci/windows@2.0.0
 
   mem:
     description: |
