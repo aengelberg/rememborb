@@ -1,12 +1,32 @@
 version: 2.1
 
+executors:
+  linux:
+    docker:
+      - image: circleci/python:3.7
+  mac:
+    macos:
+      xcode: 11.1
+
 workflows:
   orb:
     jobs:
-      - test-remember
+      - test-remember:
+          name: remember-linux
+          exec: linux
       - test-recall:
+          name: recall-linux
+          exec: linux
           requires:
-            - test-remember
+            - remember-linux
+      #- test-remember:
+      #    name: remember-mac
+      #    exec: mac
+      #- test-recall:
+      #    name: recall-mac
+      #    exec: mac
+      #    requires:
+      #      - remember-mac
       - build-and-validate
       - orb-tools/publish-dev:
           orb-name: aengelberg/rememborb
@@ -14,7 +34,7 @@ workflows:
           publish-sha-version: true
           requires:
             - build-and-validate
-            - test-recall
+            - recall-linux
       - approval:
           type: approval
           requires:
@@ -35,6 +55,29 @@ workflows:
                 - master
 
 jobs:
+  test-remember:
+    parameters:
+      exec:
+        type: executor
+    executor: << parameters.exec >>
+    steps:
+      - mem/remember:
+          env_var: FOO
+          value: bar
+      - run:
+          name: I can use this right away...
+          command: '[[ $FOO == "bar" ]]'
+  test-recall:
+    parameters:
+      exec:
+        type: executor
+    executor: << parameters.exec >>
+    steps:
+      - mem/recall:
+          env_var: FOO
+      - run:
+          name: ...or later!
+          command: '[[ $FOO == "bar" ]]'
   build-and-validate:
     docker:
       - image: circleci/ruby:2.4
@@ -42,54 +85,38 @@ jobs:
       - checkout
       - orb-tools/extract-inline-orb:
           file: orb.yml
-          orb: re
+          orb: mem
           source: .circleci/config.yml
       - cli/install
       - orb-tools/validate
-  test-remember:
-    docker:
-      - image: circleci/python:3.7
-    steps:
-      - re/member:
-          env_var: FOO
-          value: bar
-      - run:
-          name: I can use this right away...
-          command: '[[ $FOO == "bar" ]]'
-  test-recall:
-    docker:
-      - image: circleci/python:3.7
-    steps:
-      - re/call:
-          env_var: FOO
-      - run:
-          name: ...or later!
-          command: '[[ $FOO == "bar" ]]'
 
 orbs:
   orb-tools: circleci/orb-tools@8.27.4
   cli: circleci/circleci-cli@0.1.5
+  win: circleci/windows@2.0.0
 
-  re:
+  mem:
     description: |
-      TODO
+      A lightweight utility to persist environment variables across steps in a
+      job, or across jobs in a workflow.
 
     examples:
       standard_usage:
         description: |
-          TODO
+          A docker workflow, in which we need to remember the IMAGE_TAG across
+          steps and jobs as we build, test, and deploy the image.
 
         usage:
           version: 2.1
           orbs:
-            re: aengelberg/rememborb@x.y.z
+            mem: aengelberg/rememborb@x.y.z
 
           jobs:
             publish_image:
               docker:
                 - image: circleci/python:3.7
               steps:
-                - re/member:
+                - mem/remember:
                     env_var: IMAGE_TAG
                     value: super_cool_image:1.0.$CIRCLE_BUILD_NUM-$CIRCLE_SHA
                 - run: docker build -t $IMAGE_TAG .
@@ -98,7 +125,7 @@ orbs:
               docker:
                 - image: circleci/python:3.7
               steps:
-                - re/call:
+                - mem/recall:
                     env_var: IMAGE_TAG
                 - run: docker pull $IMAGE_TAG
                 - run: docker run $IMAGE_TAG test_coolness
@@ -106,7 +133,7 @@ orbs:
               docker:
                 - image: circleci/python:3.7
               steps:
-                - re/call:
+                - mem/recall:
                     env_var: IMAGE_TAG
                 - run: docker pull $IMAGE_TAG
                 - run: some_kubernetes_shenanigans $IMAGE_TAG
@@ -121,17 +148,16 @@ orbs:
                     requires:
                       - test_image
     commands:
-      member:
+      remember:
         description: |
-          TODO
+          Exports an environment variable that can be read throughout the remainder
+          of this job, and persists the value to be `recall`ed in a downstream job.
         parameters:
           env_var:
-            description: |
-              TODO
+            description: The environment variable to set.
             type: string
           value:
-            description: |
-              TODO
+            description: The value to save to the variable.
             type: string
         steps:
           - run:
@@ -149,13 +175,13 @@ orbs:
               root: /tmp/circleci_remember
               paths:
                 - .circleci_remember/<< parameters.env_var >>
-      call:
+      recall:
         description: |
-          TODO
+          Recalls an environment variable that was previously `remember`ed, and
+          exports it so it can be read throughout the remainder of this job.
         parameters:
           env_var:
-            description: |
-              TODO
+            description: The environment variable to recall.
             type: string
         steps:
           - attach_workspace:
