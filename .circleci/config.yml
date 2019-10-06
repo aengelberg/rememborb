@@ -19,22 +19,14 @@ workflows:
           exec: linux
           requires:
             - remember-linux
-      - test-remember:
-          name: remember-mac
-          exec: mac
-      - test-recall:
-          name: recall-mac
-          exec: mac
-          requires:
-            - remember-mac
-      - test-remember:
-          name: remember-windows
-          exec: win/default
-      - test-recall:
-          name: recall-windows
-          exec: win/default
-          requires:
-            - remember-windows
+      #- test-remember:
+      #    name: remember-mac
+      #    exec: mac
+      #- test-recall:
+      #    name: recall-mac
+      #    exec: mac
+      #    requires:
+      #      - remember-mac
       - build-and-validate
       - orb-tools/publish-dev:
           orb-name: aengelberg/rememborb
@@ -43,8 +35,6 @@ workflows:
           requires:
             - build-and-validate
             - recall-linux
-            - recall-mac
-            - recall-windows
       - approval:
           type: approval
           requires:
